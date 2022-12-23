@@ -1,9 +1,13 @@
+import React, { useEffect, useState } from 'react';
 import './App.scss';
 import Species from './Species';
-import {useEffect, useState} from 'react';
+import { SpecieSwapi } from './types/swapi';
 
 const API_URL = 'https://swapi.dev/api/films/2/';
-const SPECIES_IMAGES = {
+
+type SpeciesNames = 'droid' | 'human' | 'trandoshan' | 'wookie' | 'yoda';
+
+const SPECIES_IMAGES: {[ key: string ]: string} = {
   droid:
     'https://static.wikia.nocookie.net/starwars/images/f/fb/Droid_Trio_TLJ_alt.png',
   human:
@@ -16,15 +20,15 @@ const SPECIES_IMAGES = {
 };
 const CM_TO_IN_CONVERSION_RATIO = 2.54;
 
-const fetchClient = async url => {
+const fetchClient = async (url: string) => {
   const res = await fetch(url);
   const json = await res.json();
   return json;
 };
 
 function useSwapiSpecies() {
-  const [species, setSpecies] = useState([]);
-  const [error, setError] = useState(null);
+  const [species, setSpecies] = useState<SpecieSwapi[]>([]);
+  const [error, setError] = useState<boolean>(false);
 
   useEffect(() => {
     if (species.length > 0) {
@@ -35,33 +39,31 @@ function useSwapiSpecies() {
       try {
         const film = await fetchClient(API_URL);
 
-        const loadSpecies = film.species.map(speciesUrl => {
+        const loadSpecies = film.species.map((speciesUrl: string) => {
           return fetchClient(speciesUrl);
         });
 
-        const loadedSpecies = await Promise.all(loadSpecies);
+        const loadedSpecies: SpecieSwapi[] = await Promise.all(loadSpecies) || [];
 
         setSpecies(loadedSpecies);
       } catch (err) {
-        setError(err);
+        setError(true);
       }
     };
 
     fetchSpecies();
-
-    return false;
   }, [species]);
 
-  return {species, error};
+  return { species, error };
 }
 
-function mapImage(speciesName) {
+function mapImage(speciesName: string): string {
   return SPECIES_IMAGES[
     speciesName.toLowerCase().replace('https', 'http').split("'")[0]
   ];
 }
 
-function translateToInches(averageHeight) {
+function translateToInches(averageHeight: number) {
   if (isNaN(averageHeight)) {
     return 'N/A';
   }
@@ -69,28 +71,33 @@ function translateToInches(averageHeight) {
 }
 
 function SpeciesList() {
-  const {species, error} = useSwapiSpecies();
+  const { species, error } = useSwapiSpecies();
 
   if (error) {
-    return 'Something went wrong calling swapi';
+    return <p>Something went wrong calling swapi</p>;
   }
 
   if (species.length > 0) {
-    return species.map(species => {
-      const props = {
-        name: species.name,
-        classification: species.classification || '',
-        designation: species.designation || '',
-        height: translateToInches(species.average_height),
-        image: mapImage(species.name),
-        numFilms: species.films.length || '',
-        language: species.language || '',
-      };
-      return <Species key={props.name} {...props} />;
-    });
+    return <>
+      {
+        species.map((species: SpecieSwapi) => {
+          const props = {
+            key: species.name,
+            name: species.name,
+            classification: species.classification,
+            designation: species.designation,
+            height: translateToInches(species.average_height),
+            image: mapImage(species.name),
+            numFilms: species.films.length,
+            language: species.language,
+          };
+          return <Species {...props} />;
+        })
+      }
+    </>
   }
 
-  return 'Loading Species... please wait...';
+  return <p>Loading Species... please wait...</p>;
 }
 
 function App() {

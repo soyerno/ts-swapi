@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types';
+import React from 'react';
 import './Species.scss';
+import { ISpeciesComponentProps } from './types/app';
 
-const Species = ({
+const Species: React.FC<ISpeciesComponentProps> = ({
   name,
   classification,
   designation,
